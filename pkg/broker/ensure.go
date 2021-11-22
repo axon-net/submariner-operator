@@ -197,7 +197,7 @@ func CreateOrUpdateBrokerAdminRole(clientset *kubernetes.Clientset, namespace st
 func CreateNewBrokerRoleBinding(clientset *kubernetes.Clientset, serviceAccount, role string, namespace string) (brokerRoleBinding *rbac.RoleBinding,
 	err error) {
 	return clientset.RbacV1().RoleBindings(namespace).Create(
-		context.TODO(), NewBrokerRoleBinding(serviceAccount, role), metav1.CreateOptions{})
+		context.TODO(), NewBrokerRoleBinding(serviceAccount, role, namespace), metav1.CreateOptions{})
 }
 
 func CreateNewBrokerSA(clientset *kubernetes.Clientset, submarinerBrokerSA string, namespace string) (brokerSA *v1.ServiceAccount, err error) {
