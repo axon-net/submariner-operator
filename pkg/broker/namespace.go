@@ -27,10 +27,10 @@ const (
 	SubmarinerBrokerNamespace = "submariner-k8s-broker"
 )
 
-func NewBrokerNamespace() *v1.Namespace {
+func NewBrokerNamespace(namespace string) *v1.Namespace {
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: SubmarinerBrokerNamespace,
+			Name: namespace,
 		},
 	}
 

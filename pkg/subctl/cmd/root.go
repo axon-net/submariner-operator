@@ -112,16 +112,27 @@ func handleNodeLabels(config *rest.Config) error {
 			fmt.Printf("  - %s\n", node.GetName())
 		}
 	} else {
+		var node string;
 		answer, err := askForGatewayNode(clientset)
 		if err != nil {
 			return err
 		}
 		if answer.Node == "" {
 			fmt.Printf("* No worker node found to label as the gateway\n")
+			nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			if len(nodes.Items) == 0 {
+				return fmt.Errorf("There are no nodes in the cluster")
+			}
+			node = nodes.Items[0].GetName()
+			fmt.Printf("* Labelling %s as gateway\n", node)
 		} else {
-			err = addLabelsToNode(clientset, answer.Node, map[string]string{submarinerGatewayLabel: trueLabel})
-			utils.ExitOnError("Error labeling the gateway node", err)
+			node = answer.Node
 		}
+		err = addLabelsToNode(clientset, node, map[string]string{submarinerGatewayLabel: trueLabel})
+		utils.ExitOnError("Error labeling the gateway node", err)
 	}
 	return nil
 }

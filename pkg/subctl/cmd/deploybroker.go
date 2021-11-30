@@ -46,6 +46,7 @@ var (
 	componentArr                []string
 	GlobalCIDRConfigMap         *v1.ConfigMap
 	defaultCustomDomains        []string
+	brokerNamespace             string
 )
 
 var defaultComponents = []string{components.ServiceDiscovery, components.Connectivity}
@@ -72,6 +73,8 @@ func init() {
 	deployBroker.PersistentFlags().StringVar(&imageVersion, "version", "", "image version")
 
 	deployBroker.PersistentFlags().BoolVar(&operatorDebug, "operator-debug", false, "enable operator debugging (verbose logging)")
+
+	deployBroker.PersistentFlags().StringVar(&brokerNamespace, "broker-namespace", broker.SubmarinerBrokerNamespace, "namespace for broker")
 
 	AddKubeContextFlag(deployBroker)
 	rootCmd.AddCommand(deployBroker)
@@ -103,7 +106,7 @@ var deployBroker = &cobra.Command{
 		status := cli.NewStatus()
 
 		status.Start("Setting up broker RBAC")
-		err = broker.Ensure(config, componentArr, false)
+		err = broker.Ensure(config, componentArr, false, brokerNamespace)
 		status.End(cli.CheckForError(err))
 		utils.ExitOnError("Error setting up broker RBAC", err)
 
@@ -113,7 +116,7 @@ var deployBroker = &cobra.Command{
 		utils.ExitOnError("Error deploying the operator", err)
 
 		status.Start("Deploying the broker")
-		err = brokercr.Ensure(config, OperatorNamespace, populateBrokerSpec())
+		err = brokercr.Ensure(config, brokerNamespace, populateBrokerSpec())
 		if err == nil {
 			status.QueueSuccessMessage("The broker has been deployed")
 			status.End(cli.Success)
@@ -135,7 +138,7 @@ var deployBroker = &cobra.Command{
 			}
 		}
 
-		subctlData, err := datafile.NewFromCluster(config, broker.SubmarinerBrokerNamespace, ipsecSubmFile)
+		subctlData, err := datafile.NewFromCluster(config, brokerNamespace, ipsecSubmFile)
 		utils.ExitOnError("Error retrieving preparing the subm data file", err)
 
 		newFilename, err := datafile.BackupIfExists(brokerDetailsFilename)
@@ -155,12 +158,12 @@ var deployBroker = &cobra.Command{
 		utils.ExitOnError("Error setting up service discovery information", err)
 
 		if globalnetEnable {
-			err = globalnet.ValidateExistingGlobalNetworks(config, broker.SubmarinerBrokerNamespace)
+			err = globalnet.ValidateExistingGlobalNetworks(config, brokerNamespace)
 			utils.ExitOnError("Error validating existing globalCIDR configmap", err)
 		}
 
 		err = broker.CreateGlobalnetConfigMap(config, globalnetEnable, globalnetCIDRRange,
-			defaultGlobalnetClusterSize, broker.SubmarinerBrokerNamespace)
+			defaultGlobalnetClusterSize, brokerNamespace)
 		utils.ExitOnError("Error creating globalCIDR configmap on Broker", err)
 
 		err = subctlData.WriteToFile(brokerDetailsFilename)
